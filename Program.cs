@@ -43,7 +43,7 @@ app.MapGet("/version", () =>
     return Results.Ok(new
     {
         name = appName,
-        version = appVersion
+        version = appVersion + "-CD-TEST"
     });
 });
 
