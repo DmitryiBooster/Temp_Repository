@@ -1,0 +1,30 @@
+name: CD Deploy to Server
+
+on:
+  workflow_run:
+    workflows: ["CI Build and Push to GHCR"]   # должно совпадать с именем вашего CI workflow
+    types:
+      - completed
+    branches: [ "Lab4Loz" ]   # ваша рабочая ветка
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "Logging into GHCR..."
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
+            cd ${{ secrets.DEPLOY_PATH }}
+            echo "Pulling latest images..."
+            docker compose pull
+            echo "Redeploying stack..."
+            docker compose up -d --remove-orphans
+            echo "Pruning old images..."
+            docker image prune -f
